@@ -65,7 +65,7 @@ def makePlots(hist_stacks, data_hists, name, args, signal_stacks=[0], errors=[])
     legend.Draw()
 
     if not args.no_decorations:
-        ROOT.dotrootImport('kdlong/CMSPlotDecorations')
+        # ROOT.dotrootImport('kdlong/CMSPlotDecorations')
         scale_label = "Normalized to Unity" if args.luminosity < 0 else \
             "%0.1f fb^{-1}" % args.luminosity
         
@@ -77,7 +77,7 @@ def makePlots(hist_stacks, data_hists, name, args, signal_stacks=[0], errors=[])
         if args.simulation:
             lumi_text += "Simulation" 
 
-        ROOT.CMSlumi(canvas, 0, 11, "%s (13 TeV)" % scale_label, lumi_text)
+        # ROOT.CMSlumi(canvas, 0, 11, "%s (13 TeV)" % scale_label, lumi_text)
     if args.extra_text != "":
         lines = [x.strip() for x in args.extra_text.split(";")]
         ymax = coords[3] - 0.02
@@ -471,16 +471,16 @@ def getPlotPaths(selection, folder_name, write_log_file=False):
         html_area = "/afs/hep.wisc.edu/home/kdlong/public_html"
     else:
         storage_area = "/eos/home-k/%s" % os.environ["USER"]
-        html_area = "/afs/cern.ch/user/k/%s/www" % os.environ["USER"]
+        html_area = "/afs/cern.ch/user/d/%s/www" % os.environ["USER"]
     base_dir = "%s/DibosonAnalysisData/PlottingResults" % storage_area
     plot_path = "/".join([base_dir, selection] +
        (['{:%Y-%m-%d}'.format(datetime.datetime.today()),
         '{:%Hh%M}'.format(datetime.datetime.today())] if folder_name == "" \
             else [folder_name])
     )
-    makeDirectory(plot_path + "/plots")
-    if write_log_file:
-        makeDirectory(plot_path + "/logs")
+    # makeDirectory(plot_path + "/plots")
+    # if write_log_file:
+    #     makeDirectory(plot_path + "/logs")
     html_path = plot_path.replace(storage_area, html_area)
     return (plot_path, html_path)
 def getGenChannelCut(channel):
@@ -504,14 +504,15 @@ def savePlot(canvas, plot_path, html_path, branch_name, write_log_file, args):
         canvas.Print(args.output_file)
         return
     if write_log_file:
-        log_file = "/".join([plot_path, "logs", "%s_event_info.log" % branch_name])
+        makeDirectory(html_path + "/logs")
+        log_file = "/".join([html_path, "logs", "%s_event_info.log" % branch_name])
         verbose_log = log_file.replace("event_info", "event_info-verbose")
         shutil.move("temp.txt", log_file) 
         if os.path.isfile("temp-verbose.txt"):
             shutil.move("temp-verbose.txt", verbose_log) 
-    output_name ="/".join([plot_path, "plots", branch_name]) 
-    canvas.Print(output_name + ".root")
-    canvas.Print(output_name + ".C")
+    # output_name ="/".join([plot_path, "plots", branch_name]) 
+    # canvas.Print(output_name + ".root")
+    # canvas.Print(output_name + ".C")
     if not args.no_html:
         makeDirectory(html_path + "/plots")
         output_name ="/".join([html_path, "plots", branch_name])
@@ -519,11 +520,11 @@ def savePlot(canvas, plot_path, html_path, branch_name, write_log_file, args):
         canvas.Print(output_name + ".eps")
         #subprocess.call(["epstopdf", "--outfile=%s" % output_name+".pdf", output_name+".eps"])
         os.remove(output_name+".eps")
-        if write_log_file:
-            makeDirectory(html_path + "/logs")
-            shutil.copy(log_file, log_file.replace(plot_path, html_path))
-            if os.path.isfile(verbose_log):
-                shutil.copy(verbose_log, verbose_log.replace(plot_path, html_path))
+        # if write_log_file:
+        #     makeDirectory(html_path + "/logs")
+            # shutil.copy(log_file, log_file.replace(plot_path, html_path))
+            # if os.path.isfile(verbose_log):
+            #     shutil.copy(verbose_log, verbose_log.replace(plot_path, html_path))
     del canvas
 
 # Leave zero events untouched, fix negative yields (for nonprompt)

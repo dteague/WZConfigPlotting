@@ -79,6 +79,9 @@ def writeMCLogInfo(hist_info, selection, branch_name, luminosity, cut_string, la
             round(sigbkgd_err, 2)))
         mc_file.write("\nRatio S/sqrt(S+B): %0.2f +/- %0.2f" % (round(likelihood, 2), 
             round(likelihood_err, 2)))
+
+        
+
 def getStacked(name, config_factory, selection, filelist, branch_name, channels, blinding, addOverflow, latex,
                cut_string="", luminosity=1, rebin=0, uncertainties="none", hist_file=""):
     hist_stack = ROOT.THStack(name, "")
@@ -86,10 +89,12 @@ def getStacked(name, config_factory, selection, filelist, branch_name, channels,
     hist_info = {}
     for plot_set in filelist:
         if hist_file == "":
+            print "1"
             hist = helper.getConfigHistFromTree(config_factory, plot_set, selection,  
                     branch_name, channels, blinding, luminosity, addOverflow, rebin, cut_string, 
                     uncertainties)
         else:
+            print "2"
             hist = helper.getConfigHistFromFile(hist_file, config_factory, plot_set, 
                         selection, branch_name, channels, luminosity, addOverflow=addOverflow, rebin=rebin)
         if luminosity < 0:
@@ -107,6 +112,8 @@ def getStacked(name, config_factory, selection, filelist, branch_name, channels,
         }
     writeMCLogInfo(hist_info, selection, branch_name, luminosity, cut_string, latex)
     return hist_stack
+
+
 def main():
     args = getComLineArgs()
     ROOT.gROOT.SetBatch(True)
@@ -114,14 +121,16 @@ def main():
     if args.hist_file == "":
         ROOT.TProof.Open('workers=12')
     filelist = UserInput.getListOfFiles(args.files_to_plot, args.selection)
-    path = "/cms/kdlong" if "hep.wisc.edu" in os.environ['HOSTNAME'] else \
-        "/afs/cern.ch/user/k/kelong/work"
+
+#NEED TO FIX!!!!
+    path = "/afs/cern.ch/user/d/dteague/work"
     config_factory = ConfigHistFactory(
         "%s/AnalysisDatasetManager" % path,
         #args.selection.split("_")[0],
         args.selection,
         args.object_restrict
     )
+
     branches = config_factory.getListOfPlotObjects() if args.branches == "all" \
             else [x.strip() for x in args.branches.split(",")]
     cut_string = args.make_cut
