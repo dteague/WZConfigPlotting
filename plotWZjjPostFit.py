@@ -89,11 +89,16 @@ def makeLogFile(channels, hist_info, args):
         "data_2016" : "Data",
         "data" : "Data",
         "data_2016H" : "Data (2016H)",
+        "VVV" : "VVV",
+        "qqZZ_powheg" : "qq #to ZZ",
+        "HZZ_signal" : "H #to ZZ",
+        "ggZZ" : "gg #to ZZ",
+        "zzjj4l_ewk" : "EW ZZjj",
     }
 
     sigfigs = 3
     for name, entry in hist_info.iteritems():
-        if "aqgc" in name:
+        if "aqgc" in name or "atgc" in name:
             continue
         for i, chan in enumerate(channels):
             # Channels should be ordered the same way as passed to the histogram
@@ -139,6 +144,14 @@ def rebinMTWZ(hist, hist_name, isHiggs):
         new_hist.SetBinError(i, hist.GetBinError(i))
     return new_hist
 
+def setBinning(hist, hist_name, binning):
+    binning = array.array('d', binning) 
+    new_hist = ROOT.TH1D(hist_name, hist_name, len(binning)-1, binning)
+    for i in range(hist.GetNbinsX()+1):
+        new_hist.SetBinContent(i, hist.GetBinContent(i))
+        new_hist.SetBinError(i, hist.GetBinError(i))
+    return new_hist
+
 def getChanMapping(chan):
     mapping = {"mmm" : 2, 
         "emm" : 3,
@@ -169,13 +182,7 @@ def main():
 
     channels = args.channels.split(",")
     hist_info = {}
-    hist_info["predyield"] = OrderedDict({"mmm" : [0,0],
-        "emm" : [0,0],
-        "eem" : [0,0],
-        "eee" : [0,0],
-        "total" : [0,0],
-        }
-    )
+    hist_info["predyield"] = OrderedDict({chan : [0,0] for chan in channels+["total"]})
     for branch in args.branches.split(","):
         with open("temp.txt", "w") as mc_file:
             mc_file.write(meta_info)
@@ -195,13 +202,7 @@ def main():
             plot_groups.extend(args.signal_files.split(","))
         isHiggs = "higgs" in args.signal_files.lower()
         for i, plot_group in enumerate(plot_groups):
-            hist_info[plot_group] = OrderedDict({"mmm" : [0,0],
-                "emm" : [0,0],
-                "eem" : [0,0],
-                "eee" : [0,0],
-                "total" : [0,0],
-                }
-            )
+            hist_info[plot_group] = OrderedDict({chan : [0,0] for chan in channels+["total"]})
             isSignal = False
             central_hist = 0
             for chan in channels:
@@ -221,6 +222,9 @@ def main():
                     hist = removeControlRegion(hist)
                 if "MTWZ" in plot_name:
                     hist = rebinMTWZ(hist, hist_name, isHiggs)
+                elif args.rebin:
+                    hist = setBinning(hist, hist_name, args.rebin)
+
                 if "yieldByChannel" in plot_name:
                     hist = getYieldByChannelHist(hist, chan)
 

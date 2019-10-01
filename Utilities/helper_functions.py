@@ -210,12 +210,13 @@ def getHistFactory(config_factory, selection, filelist, luminosity=1, hist_file=
         else:
             hist_factory[name] = dict(all_files[name])
         if "data" not in name.lower() and name != "nonprompt":
-            kfac = 1. if 'kfactor' not in mc_info[base_name].keys() else mc_info[base_name]['kfactor']
+            ref_info = mc_info[name] if name in mc_info.keys() else mc_info[base_name]
+            kfac = 1. if 'kfactor' not in ref_info.keys() else ref_info['kfactor']
             if not hist_file:
                 metaTree = ROOT.TChain(metaTree_name)
                 metaTree.Add(hist_factory[name]["file_path"])
                 weight_info = WeightInfo.WeightInfoProducer(metaTree, 
-                        mc_info[base_name]['cross_section']*kfac,
+                        ref_info['cross_section']*kfac,
                         sum_weights_branch).produce()
             else:
                 # Not the most elegant way to go about it, but better to read
@@ -514,17 +515,23 @@ def savePlot(canvas, plot_path, html_path, branch_name, write_log_file, args):
     # canvas.Print(output_name + ".root")
     # canvas.Print(output_name + ".C")
     if not args.no_html:
+        coverteps = subprocess.call(["command", "-v", "epstopdf"])
         makeDirectory(html_path + "/plots")
         output_name ="/".join([html_path, "plots", branch_name])
         canvas.Print(output_name + ".png")
-        canvas.Print(output_name + ".eps")
-        #subprocess.call(["epstopdf", "--outfile=%s" % output_name+".pdf", output_name+".eps"])
-        os.remove(output_name+".eps")
-        # if write_log_file:
-        #     makeDirectory(html_path + "/logs")
-            # shutil.copy(log_file, log_file.replace(plot_path, html_path))
-            # if os.path.isfile(verbose_log):
-            #     shutil.copy(verbose_log, verbose_log.replace(plot_path, html_path))
+        # Because ROOT pdf output doesn't display latex properly.
+        # Unfortunately you can't take epstopdf for granted
+        if coverteps == 0:
+            canvas.Print(output_name + ".eps")
+            subprocess.call(["epstopdf", "--outfile=%s" % output_name+".pdf", output_name+".eps"])
+            os.remove(output_name+".eps")
+        else:
+            canvas.Print(output_name + ".pdf")
+        if write_log_file:
+            makeDirectory(html_path + "/logs")
+            shutil.copy(log_file, log_file.replace(plot_path, html_path))
+            if os.path.isfile(verbose_log):
+                shutil.copy(verbose_log, verbose_log.replace(plot_path, html_path))
     del canvas
 
 # Leave zero events untouched, fix negative yields (for nonprompt)
