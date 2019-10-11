@@ -1,39 +1,44 @@
 #!/usr/bin/env python
-
-import InfoGetter
-import Utilities.ConfigHistTools as tools
 import os
 import ROOT as r
-from configHelper import *
 
+from configHelper import *
+import InfoGetter
+import StyleHelper as style
+import configHelper
+
+args = configHelper.getComLineArgs()
 r.gROOT.SetBatch(True)
 r.gStyle.SetOptTitle(0)
 
-analysis = "ThreeLep"
-selection = "Blah"
-infile_name = "/afs/cern.ch/work/d/dteague/CMSSW_10_4_0/src/WZConfigPlotting/test_1010.root"
-outfile_name = "outfile.root"
 
-channels = ['all']
-lumi = 35900
 drawOrder = ['ttXY', "ttt", "xg", 'Charge',  'ttz', 'tth', 'nonprompt', 'ttw', '2016']
-signalName = "2016"
 
-inFile = r.TFile(infile_name)
-outFile = r.TFile(outfile_name, "RECREATE")
 
-info = InfoGetter.InfoGetter(analysis, selection, inFile)
-info.setLumi(lumi)
+if args.signal and args.signal not in drawOrder:
+    print "signal not in list of groups!"
+    print drawOrder
+    exit(1)
+
+signalName = args.signal
+channels = args.channels.split(',')
+
+inFile = r.TFile(args.infile)
+outFile = r.TFile(args.outfile, "RECREATE")
+
+info = InfoGetter.InfoGetter(args.analysis, args.selection, inFile)
+info.setLumi(args.lumi*1000)
 
 for histName in info.getListOfHists():
     for chan in channels:
-        groupHists = getNormedHistos(inFile, info, histName, chan)
+        groupHists = configHelper.getNormedHistos(inFile, info, histName, chan)
         if not groupHists:
             continue
 
+        # signal scaled by 5 and done by hand. my configure this in style.py file
         if signalName in groupHists:
             signal = groupHists[signalName].Clone()
-            setStyle(signal, "nofill-red-thick")
+            style.setStyle(signal, "nofill-red-thick")
             signal.Scale(5)
             signal.SetMarkerSize(2)
             del groupHists[signalName]
@@ -43,9 +48,13 @@ for histName in info.getListOfHists():
         stack = r.THStack("%s_%s" % (histName, chan), "")
         for group in [i for i in drawOrder if i in groupHists]:
             hist = groupHists[group]
-            setStyle(hist, info.getStyle(group))
+            style.setStyle(hist, info.getStyle(group))
             stack.Add(hist)
+        if args.stack_signal:
+            stack.Add(signal)
+            signal = None
 
+            
         legend = r.TLegend(*info.getStyleInit("Legend"))
         for group in [i for i in drawOrder[::-1] if i in groupHists]:
             legend.AddEntry(groupHists[group], info.getLegendName(group), 'f')
@@ -55,18 +64,19 @@ for histName in info.getListOfHists():
             
         c = r.TCanvas(histName, histName, *info.getStyleInit("Canvas"))
         c.Draw()
-        setAttributes(c, info.getStyleInfo("Canvas"))
+        style.setAttributes(c, info.getStyleInfo("Canvas"))
+        if args.logy: c.SetLogy()
         
         stack.Draw("hist")
-        setAttributes(stack, info.getAxisInfo(histName))
+        style.setAttributes(stack, info.getAxisInfo(histName))
         if histName == "SR":
             stack.GetXaxis().SetRangeUser(1, 9)
 
         
-        signal.Draw("same")
-        
+        if signal: signal.Draw("same")
+            
         legend.Draw()
-        setAttributes(legend, info.getStyleInfo("Legend"))
+        style.setAttributes(legend, info.getStyleInfo("Legend"))
         
         outFile.cd()
         c.Write()

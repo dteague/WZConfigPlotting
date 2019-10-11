@@ -1,9 +1,53 @@
 import ROOT as r
+import argparse
+
+def getComLineArgs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-o", "--outfile", type=str, default="output.root",
+                        help="Output root file name")
+    parser.add_argument("-i", "--infile", type=str, required=True,
+                        help="Input root file (output of makeHistFile.py)")
+    parser.add_argument("-a", "--analysis", type=str, required=True,
+                        help="Specificy analysis used")
+    parser.add_argument("-s", "--selection", type=str, default="",
+                        help="Specificy selection level to run over")
+    parser.add_argument("-l", "--lumi", type=float, default=-1,
+                        help="Luminsoity in fb-1. Default -1 fb-1. "
+                        "Set to -1 for unit normalization")
+    parser.add_argument("-c", "--channels", type=str, default="all",
+                        help="List (separate by commas) of channels to plot") 
+    parser.add_argument("-sig", "--signal", type=str, default="",
+                        help="Name of the group to be made into the Signal") 
+    parser.add_argument("--logy", action='store_true',
+                        help="Use logaritmic scale on Y-axis")
+    parser.add_argument("--stack_signal", action='store_true',
+                        help="Stack signal hists on top of background")
+    
+    # do nothing
+    # parser.add_argument("--ratio_range", nargs=2, default=[0.4,1.6],
+    #                     help="Ratio min ratio max (default 0.5 1.5)")
+    # parser.add_argument("--no_overflow", action='store_true',
+    #                     help="No overflow bin")
+    # parser.add_argument("-u", "--uncertainties", type=str, default="all",
+    #                     choices=["all", "stat", "scale", "none"],
+    #                     help="Include error bands for specfied uncertainties")
+    # parser.add_argument("--nostack", action='store_true',
+    #                     help="Don't stack hists")
+    
+    # parser.add_argument("--no_ratio", action="store_true",
+    #                     help="Do not add ratio comparison")
+    # parser.add_argument("--no_html", action='store_true',
+    #                     help="Don't copy plot pdfs to website")
+    # parser.add_argument("--no_data", action='store_true',
+    #                     help="Plot only Monte Carlo")
+    return parser.parse_args()
+
 
 
 def getNormedHistos(inFile, info, histName, chan):
     groupHists = dict()
     inFile.cd()
+    
     for dir in inFile.GetListOfKeys():
         sample = dir.GetName()
         r.gDirectory.cd(sample)
@@ -12,7 +56,12 @@ def getNormedHistos(inFile, info, histName, chan):
         if hist.Integral() <= 0:
             inFile.cd()
             continue
-        hist.Scale(info.getLumi() * info.getXSec(sample) / info.getSumweight(sample))
+        
+        if info.getLumi() < 0:
+            hist.Scale(1.0/hist.Integral())
+        else:
+            hist.Scale(info.getLumi() * info.getXSec(sample) / info.getSumweight(sample))
+            
         if group not in groupHists.keys():
             groupHists[group] = hist.Clone()
         else:
@@ -21,59 +70,4 @@ def getNormedHistos(inFile, info, histName, chan):
         
     return groupHists
 
-def setStyle(hist, styleStr):
-    # stylers (may put in different place)
-    extraStyles = {
-        "default" : [1, 1], "thick" : [1, 3],
-        "dotdash" : [8, 3], "dash" : [7, 3], "largedash" : [9, 2], "finedash" : [3, 3], 
-        }
-    fillStyles = {"fill" : 1001, "nofill" : 0, "hatch" : 3004}
-    from colors import colors
-    
-    styleBits = styleStr.split('-')
-    fillStyle = fillStyles[styleBits.pop(0)]
-    color = colors[styleBits.pop(0)]
-    lineColor = getLineColor(color)
-    extraStyle = extraStyles['default']
-    try:
-        extraStyle = extraStyles[styleBits.pop(0)]
-    except:
-        pass
-    if fillStyle == 0:
-        lineColor = color
 
-    hist.SetFillColor(r.TColor.GetColor('#%06x' % color))
-    hist.SetLineColor(r.TColor.GetColor('#%06x' % lineColor))
-    hist.SetFillStyle(fillStyle)
-    hist.SetLineStyle(extraStyle[0])
-    hist.SetLineWidth(extraStyle[1])
-    hist.SetMarkerSize(0)
-    
-def getLineColor(fillColor):
-    r = fillColor/0x10000
-    g = (fillColor % 0x10000)/0x100
-    b = fillColor % 0x100
-    sft = 102
-    rmod = r - sft if r > sft else 0
-    gmod = g - sft if g > sft else 0
-    bmod = b - sft if b > sft else 0
-    
-    return rmod*0x10000 + gmod*0x100 + bmod
-
-def setAttributes(obj, attributes, isStack=False):
-    for func, val in attributes.iteritems():
-        if isStack and "Get" in func:
-            runModule(obj.GetHistogram(), func, val)
-        else:
-            runModule(obj, func, val)
-
-def runModule(module, func, val):
-    funcList = func.split('.')
-    tmp = getattr(module, funcList.pop(0).strip("()"))
-    for extraFunc in funcList:
-        try:
-            tmp = getattr(tmp(), extraFunc.strip("()"))
-        except:
-            tmp = getattr(tmp, extraFunc.strip("()"))
-    tmp(val)
-    
