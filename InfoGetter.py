@@ -22,7 +22,7 @@ class InfoGetter:
             self.objectInfo = self.readAllInfo("%s/PlotObjects/%s/%s.json" % (adm_path, analysis, selection))
         else:
             self.objectInfo = self.readAllInfo("%s/PlotObjects/%s.json" % (adm_path, analysis))
-    
+
 ##################################
 #  _   _      _                  #
 # | | | | ___| |_ __   ___ _ __  #

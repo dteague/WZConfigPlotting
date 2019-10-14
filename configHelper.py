@@ -70,4 +70,26 @@ def getNormedHistos(inFile, info, histName, chan):
         
     return groupHists
 
+def addOverflow(inHist):
+    binMax = inHist.GetNbinsX()
+    inHist.SetBinContent(binMax, inHist.GetBinContent(binMax) + inHist.GetBinContent(binMax+1) )
+    
+def getDrawOrder(groupHists, drawObj):
+    drawTmp = [(hist.Integral(), key) for key, hist in groupHists.iteritems() if key in drawObj]
+    drawTmp.sort()
+    return [i[1] for i in drawTmp]
+
+
+def getHistTotal(groupHists):
+    totalHist = None
+    for hist in groupHists:
+        if not totalHist:
+            totalHist = hist.Clone()
+        else:
+            totalHist.Add(hist)
+    return totalHist
+    
+        
+    
+    
 

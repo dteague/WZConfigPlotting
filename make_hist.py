@@ -2,22 +2,21 @@
 import os
 import ROOT as r
 
-from configHelper import *
 import InfoGetter
 import StyleHelper as style
-import configHelper
+import configHelper as configHelper
 
 args = configHelper.getComLineArgs()
 r.gROOT.SetBatch(True)
 r.gStyle.SetOptTitle(0)
+        
+
+drawObj = ['ttXY', "rare", "xg", 'Charge',  'ttz', 'tth', 'nonprompt', 'ttw', '2016']
 
 
-drawOrder = ['ttXY', "ttt", "xg", 'Charge',  'ttz', 'tth', 'nonprompt', 'ttw', '2016']
-
-
-if args.signal and args.signal not in drawOrder:
+if args.signal and args.signal not in drawObj:
     print "signal not in list of groups!"
-    print drawOrder
+    print drawObj
     exit(1)
 
 signalName = args.signal
@@ -32,18 +31,24 @@ info.setLumi(args.lumi*1000)
 for histName in info.getListOfHists():
     for chan in channels:
         groupHists = configHelper.getNormedHistos(inFile, info, histName, chan)
+        for hist in groupHists.values(): configHelper.addOverflow(hist)
+            
         if not groupHists:
             continue
 
-        # signal scaled by 5 and done by hand. my configure this in style.py file
         if signalName in groupHists:
             signal = groupHists[signalName].Clone()
-            style.setStyle(signal, "nofill-red-thick")
-            signal.Scale(5)
-            signal.SetMarkerSize(2)
+            style.setStyle(signal, info.getStyleInit("Signal"))
+            style.setAttributes(signal, info.getStyleInfo("Signal"))
             del groupHists[signalName]
         else:
             signal = None
+         
+        drawOrder = configHelper.getDrawOrder(groupHists, drawObj)
+            
+        statError = configHelper.getHistTotal([i for key, i in groupHists.iteritems() if key in drawOrder])
+        style.setStyle(statError, info.getStyleInit("ErrorBars"))
+        
         
         stack = r.THStack("%s_%s" % (histName, chan), "")
         for group in [i for i in drawOrder if i in groupHists]:
@@ -54,29 +59,28 @@ for histName in info.getListOfHists():
             stack.Add(signal)
             signal = None
 
-            
+        # setup legend stuff
         legend = r.TLegend(*info.getStyleInit("Legend"))
         for group in [i for i in drawOrder[::-1] if i in groupHists]:
             legend.AddEntry(groupHists[group], info.getLegendName(group), 'f')
+        legend.AddEntry(statError, "statError", "f")
         if signal:
-            legend.AddEntry(signal, "%s x 5" % info.getLegendName(signalName), 'lep')
+            legend.AddEntry(signal, "%s x 5" % info.getLegendName(signalName), 'lep') # need to change
+        style.setAttributes(legend, info.getStyleInfo("Legend"))
 
-            
+        # canvas
         c = r.TCanvas(histName, histName, *info.getStyleInit("Canvas"))
         c.Draw()
         style.setAttributes(c, info.getStyleInfo("Canvas"))
         if args.logy: c.SetLogy()
-        
+
+        # draw everything
         stack.Draw("hist")
         style.setAttributes(stack, info.getAxisInfo(histName))
-        if histName == "SR":
-            stack.GetXaxis().SetRangeUser(1, 9)
-
-        
+        statError.Draw("E2 same")
         if signal: signal.Draw("same")
-            
         legend.Draw()
-        style.setAttributes(legend, info.getStyleInfo("Legend"))
+        
         
         outFile.cd()
         c.Write()
