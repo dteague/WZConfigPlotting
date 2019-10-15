@@ -22,10 +22,13 @@ def getComLineArgs():
                         help="Use logaritmic scale on Y-axis")
     parser.add_argument("--stack_signal", action='store_true',
                         help="Stack signal hists on top of background")
+    parser.add_argument("--ratio_range", nargs=2, default=[0.4,1.6],
+                        help="Ratio min ratio max (default 0.5 1.5)")
+    parser.add_argument("--no_ratio", action="store_true",
+                        help="Do not add ratio comparison")
     
     # do nothing
-    # parser.add_argument("--ratio_range", nargs=2, default=[0.4,1.6],
-    #                     help="Ratio min ratio max (default 0.5 1.5)")
+    
     # parser.add_argument("--no_overflow", action='store_true',
     #                     help="No overflow bin")
     # parser.add_argument("-u", "--uncertainties", type=str, default="all",
@@ -34,8 +37,6 @@ def getComLineArgs():
     # parser.add_argument("--nostack", action='store_true',
     #                     help="Don't stack hists")
     
-    # parser.add_argument("--no_ratio", action="store_true",
-    #                     help="Do not add ratio comparison")
     # parser.add_argument("--no_html", action='store_true',
     #                     help="Don't copy plot pdfs to website")
     # parser.add_argument("--no_data", action='store_true',

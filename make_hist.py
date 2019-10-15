@@ -75,10 +75,18 @@ for histName in info.getListOfHists():
         if args.logy: c.SetLogy()
 
         # draw everything
-        stack.Draw("hist")
-        style.setAttributes(stack, info.getAxisInfo(histName))
-        statError.Draw("E2 same")
+        if args.no_ratio:
+            stack.Draw("hist")
+            style.setAttributes(stack, info.getAxisInfo(histName))
+            statError.Draw("E2 same")
+        else:
+            ratioPlot = r.TRatioPlot(stack, statError)
+            ratioPlot.Draw()
+            style.setAttributes(stack, info.getAxisInfo(histName))
+            ratioPlot.GetUpperPad().cd()
+            statError.Draw("E2 same")
         if signal: signal.Draw("same")
+
         legend.Draw()
         
         

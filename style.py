@@ -26,5 +26,5 @@ info = {
             "SetMarkerStyle" : 2,
             "Scale" : 5,
         }
-    }
+    },
 }
