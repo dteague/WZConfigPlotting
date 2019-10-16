@@ -135,6 +135,13 @@ class InfoGetter:
     def getLegendName(self, group):
         return self.groupInfo[group]['Name']
 
+    def getSelection(self):
+        return self.selection
+
+    def getAnalysis(self):
+        return self.analysis
+
+    
     
     #################################
     #  ____       _   _             #
