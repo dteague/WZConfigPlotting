@@ -65,8 +65,10 @@ def writeHTML(path, name):
             index.write(getTableRow(image_file.split("/")[-1]))
             if (i+1) % 3 == 0: 
                 index.write('  </tr>\n')
+                
         index.write( '</body>\n'
                 '</html>' )
+        
 def getTableRow(image_file):
     return '''    <td style="text-align: center;">
         <img src="plots/{image}" class="autoResizeImage" /><br/>
@@ -75,13 +77,12 @@ def getTableRow(image_file):
         <a href="plots/{name}.pdf">[pdf]</a>
     </td>\n'''.format(image=image_file, name=image_file.split(".")[-2])
     
-def main():
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--path_to_files', type=str, required=True)
     parser.add_argument('-n', '--name', type=str, required=True)
     args = parser.parse_args()
 
     writeHTML(args.path_to_files.rstrip("/*"), args.name)
-
-if __name__ == "__main__":
-    main()
+ 

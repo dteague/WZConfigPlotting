@@ -11,13 +11,16 @@ def getComLineArgs():
                         help="Specificy analysis used")
     parser.add_argument("-s", "--selection", type=str, default="",
                         help="Specificy selection level to run over")
-    parser.add_argument("-l", "--lumi", type=float, default=-1,
-                        help="Luminsoity in fb-1. Default -1 fb-1. "
-                        "Set to -1 for unit normalization")
+    parser.add_argument("--drawStyle", type=str, default='stack', help='Way to draw graph',
+                        choices=['stack', 'compare'])
     parser.add_argument("-c", "--channels", type=str, default="all",
-                        help="List (separate by commas) of channels to plot") 
+                        help="List (separate by commas) of channels to plot")
     parser.add_argument("-sig", "--signal", type=str, default="",
-                        help="Name of the group to be made into the Signal") 
+                        help="Name of the group to be made into the Signal")
+    
+    parser.add_argument("-l", "--lumi", type=float, default=35.9,
+                        help="Luminsoity in fb-1. Default 35.9 fb-1. "
+                        "Set to -1 for unit normalization")
     parser.add_argument("--logy", action='store_true',
                         help="Use logaritmic scale on Y-axis")
     parser.add_argument("--stack_signal", action='store_true',
@@ -26,6 +29,9 @@ def getComLineArgs():
                         help="Ratio min ratio max (default 0.5 1.5)")
     parser.add_argument("--no_ratio", action="store_true",
                         help="Do not add ratio comparison")
+    parser.add_argument("--autoScale", type=float, default=-1.,
+                        help="Ignore Max argument and scale max to ratio given")
+    
     
     # do nothing
     
@@ -57,40 +63,47 @@ def getNormedHistos(inFile, info, histName, chan):
         if hist.Integral() <= 0:
             inFile.cd()
             continue
-        
-        if info.getLumi() < 0:
-            hist.Scale(1.0/hist.Integral())
-        else:
-            hist.Scale(info.getLumi() * info.getXSec(sample) / info.getSumweight(sample))
-            
+        hist.Scale(info.getXSec(sample) / info.getSumweight(sample))
         if group not in groupHists.keys():
             groupHists[group] = hist.Clone()
         else:
             groupHists[group].Add(hist)
         inFile.cd()
-        
+    for name, hist in groupHists.iteritems():
+        if info.getLumi() < 0:
+            hist.Scale(1/hist.Integral())
+        else:
+            hist.Scale(info.getLumi())
+        hist.SetName(name)
     return groupHists
 
 def addOverflow(inHist):
     binMax = inHist.GetNbinsX()
     inHist.SetBinContent(binMax, inHist.GetBinContent(binMax) + inHist.GetBinContent(binMax+1) )
     
-def getDrawOrder(groupHists, drawObj):
+def getDrawOrder(groupHists, drawObj, info):
     drawTmp = [(hist.Integral(), key) for key, hist in groupHists.iteritems() if key in drawObj]
     drawTmp.sort()
-    return [i[1] for i in drawTmp]
+    return [(i[1], groupHists[i[1]]) for i in drawTmp]
 
 
 def getHistTotal(groupHists):
     totalHist = None
-    for hist in groupHists:
+    for name, hist in groupHists:
         if not totalHist:
             totalHist = hist.Clone()
         else:
             totalHist.Add(hist)
+    totalHist.SetName("error")
     return totalHist
     
-        
+def getMax(stack, signal=None, data=None):
+    maxHeight = stack.GetMaximum()
+    if signal:
+        maxHeight = max(maxHeight, signal.GetMaximum())
+    if data:
+        maxHeight = max(maxHeight, data.GetMaximum())
+    return maxHeight
     
-    
+ 
 

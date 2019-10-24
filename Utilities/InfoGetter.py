@@ -128,7 +128,6 @@ class InfoGetter:
     def getStyleInfo(self, typeName):
         return self.objectStyle[typeName]['Attributes']
 
-    
     def getLumi(self):
         return self.lumi
 
@@ -141,7 +140,9 @@ class InfoGetter:
     def getAnalysis(self):
         return self.analysis
 
-    
+    def getGroups(self):
+        return self.groupInfo.keys()
+
     
     #################################
     #  ____       _   _             #
